@@ -1,14 +1,13 @@
 version: '3.8'
 
 services:
-  # OpenTelemetry Collector
   otel-collector:
     image: otel/opentelemetry-collector:latest
     container_name: otel-collector
     ports:
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP (caso uses)
-      - "8888:8888"     # Metrics (Opcional)
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -17,20 +16,18 @@ services:
     networks:
       - otel-net
 
-  # Grafana Tempo (recebe os traces)
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
     ports:
-      - "3200:3200"     # Tempo HTTP API
+      - "3200:3200"
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml
-      - tempo-data:/tmp/tempo
+      - ./tempo-data:/tmp/tempo
     networks:
       - otel-net
 
-  # Grafana (UI para ver traces)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -47,7 +44,6 @@ services:
       - otel-net
 
 volumes:
-  tempo-data:
   grafana-storage:
 
 networks:
