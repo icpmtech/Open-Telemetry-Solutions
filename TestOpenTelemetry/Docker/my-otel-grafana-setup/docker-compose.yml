@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - "1888:1888"   # pprof for performance profiling
+      - "8890:8890"   # Prometheus metrics exported by the Collector
+      - "8889:8889"   # Prometheus exporter metrics (if needed)
+      - "13133:13133" # Health check endpoint
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    networks:
+      - otel-collector
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"   # Prometheus web interface
+    networks:
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"   # Grafana web interface
+    networks:
+      - otel-collector
+
+  fastapi-app:
+    build: ./fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-collector
+
+networks:
+  otel-collector:
+    name: otel-collector
+    driver: bridge
