@@ -1,0 +1,34 @@
+{
+    "uid": "otel-metrics",
+    "title": "OTEL App Metrics",
+    "timezone": "browser",
+    "panels": [
+      {
+        "type": "timeseries",
+        "title": "HTTP Server Requests (count)",
+        "targets": [
+          {
+            "expr": "otelcol_receiver_accepted_spans",
+            "legendFormat": "Spans received",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      }
+    ],
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "5s"
+  }
+  
