@@ -33,6 +33,7 @@ services:
       - "3000:3000"   # Grafana web interface
     networks:
       - otel-collector
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     environment:
@@ -41,6 +42,8 @@ services:
       - xpack.monitoring.collection.enabled=true
     ports:
       - "9200:9200"
+    volumes:
+      - ./elastic_templates:/usr/share/elasticsearch/config/templates
     networks:
       - otel-collector
 

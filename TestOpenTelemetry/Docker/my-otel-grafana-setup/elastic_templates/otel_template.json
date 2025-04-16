@@ -1,0 +1,22 @@
+{
+    "index_patterns": ["otel-*"],
+    "data_stream": {},
+    "template": {
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0
+      },
+      "mappings": {
+        "properties": {
+          "@timestamp": { "type": "date" },
+          "trace_id": { "type": "keyword" },
+          "message": { "type": "text" }
+        }
+      }
+    },
+    "priority": 500,
+    "_meta": {
+      "description": "Template for OpenTelemetry data (traces, logs, etc.)"
+    }
+  }
+  
