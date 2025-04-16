@@ -1,11 +1,13 @@
 
-# 📊 Observability Stack with OpenTelemetry, Prometheus & Grafana (Docker)
+# 📊 Observability Stack with OpenTelemetry, Prometheus, Elasticsearch & Grafana (Docker)
 
-This project sets up a complete observability pipeline using Docker Compose, including:
+This project sets up a full **observability pipeline** using Docker Compose, including:
 
-- **OpenTelemetry Collector** – Receives and processes telemetry data
-- **Prometheus** – Scrapes and stores metrics
-- **Grafana** – Visualizes the metrics with dashboards
+- **OpenTelemetry Collector** – Receives and exports telemetry data (metrics/logs)
+- **Prometheus** – Scrapes and stores application metrics
+- **Elasticsearch** – Stores structured logs and traces
+- **Grafana** – Visualizes both metrics and logs through prebuilt dashboards
+- **Kibana** – UI to query and inspect logs in Elasticsearch
 
 ---
 
@@ -16,86 +18,116 @@ my-otel-grafana-setup/
 ├── docker-compose.yml
 ├── otel-collector-config.yaml
 ├── prometheus.yml
-└── grafana/
-    └── provisioning/
-        └── datasources/
-            └── datasource.yml
+├── elastic_templates/
+│   └── otel_template.json
+├── grafana/
+│   └── provisioning/
+│       ├── datasources/
+│       │   ├── datasource.yml
+│       │   └── elasticsearch.yml
+│       └── dashboards/
+│           ├── dashboard.yaml
+│           └── json/
+│               └── otel-dashboard.json
+├── infra/
+│   ├── image.png
+│   ├── main.bicep
+│   └── parameters.json
+├── manual-operations/
+│   └── configure-elastic.md
+└── fastapi-app/   # Optional instrumented app
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone <repo-url>
 cd my-otel-grafana-setup
 ```
 
-### 2. Run Docker Compose
+### 2. Launch the Stack
 
 ```bash
 docker-compose up -d
 ```
 
-This will start:
-- OpenTelemetry Collector on ports 4317 (gRPC) and 4318 (HTTP)
-- Prometheus on port 9090
-- Grafana on port 3000
+This will start the following services:
+
+| Component                | Port                    |
+|-------------------------|-------------------------|
+| OpenTelemetry Collector | 4317 (gRPC), 4318 (HTTP)|
+| Prometheus              | 9090                    |
+| Elasticsearch           | 9200                    |
+| Kibana                  | 5601                    |
+| Grafana                 | 3000                    |
 
 ---
 
-## 🛠️ Configuration Files
+## 🛠️ Key Configuration Files
 
-### `otel-collector-config.yaml`
+- `otel-collector-config.yaml`: OpenTelemetry Collector pipeline configuration
+- `prometheus.yml`: Prometheus scrape job setup
+- `elastic_templates/otel_template.json`: Index template for `otel-*` indices (logs/traces)
+- `grafana/provisioning/datasources/`: Auto-adds Prometheus and Elasticsearch as data sources
+- `grafana/provisioning/dashboards/`: Auto-loads dashboard showing log streams and metrics over time
 
-Configures OpenTelemetry Collector to receive OTLP metrics and expose them to Prometheus.
+---
 
-### `prometheus.yml`
+## 📥 Sending Telemetry
 
-Tells Prometheus to scrape metrics from the OpenTelemetry Collector on port `8888`.
+Send OpenTelemetry data using any instrumented app or tools like [`otel-cli`](https://github.com/equinix-labs/otel-cli).
 
-### `grafana/provisioning/datasources/datasource.yml`
+### Metrics
 
-Automatically provisions Prometheus as a data source in Grafana.
+- HTTP: `http://localhost:4318/v1/metrics`
+- gRPC: `grpc://localhost:4317`
+
+### Logs (via OTLP exporter)
+
+Ensure your app sends logs with the required fields: `@timestamp`, `trace_id`, `message`, etc.
 
 ---
 
 ## 🖥️ Access the Interfaces
 
 - **Grafana**: [http://localhost:3000](http://localhost:3000)  
-  Login: `admin / admin`
+  - Login: `admin / admin`
+- **Kibana**: [http://localhost:5601](http://localhost:5601)  
+  - Use **Dev Tools** to apply `otel_template.json`
 - **Prometheus**: [http://localhost:9090](http://localhost:9090)
 
 ---
 
-## 📡 Sending Telemetry
+## 📊 Preloaded Grafana Dashboard
 
-Send metrics to the OTLP Collector:
-- `http://localhost:4318/v1/metrics` (HTTP)
-- `grpc://localhost:4317` (gRPC)
+Grafana auto-loads a dashboard that includes:
 
-Use your instrumented app or tools like [`otel-cli`](https://github.com/equinix-labs/otel-cli).
+- **Log Stream**: Live view of logs from `otel-*` indices
+- **Time Series Panel**: Visualize log volume over time
+
+📂 Find it under: **Folder:** `otel` → **Dashboard:** `OpenTelemetry Logs`
 
 ---
 
-## ⚠️ Port 55679 Error Fix (zPages)
+## ⚠️ Port Conflicts (Optional)
 
-If you encounter this error:
+If you see an error like:
 
 ```
 Ports are not available: exposing port TCP 0.0.0.0:55679
 ```
 
-### Solutions:
+Do one of the following:
 
-- **Option 1**: Remove this line from `docker-compose.yml` if you're not using zPages:
+- Remove the line from `docker-compose.yml`:
   ```yaml
   - "55679:55679"
   ```
-
-- **Option 2**: Change to a free port, e.g.:
+- Or change to a free port:
   ```yaml
   - "55678:55679"
   ```
@@ -109,23 +141,41 @@ docker-compose up -d
 
 ---
 
-## 🧱 Build Dashboards in Grafana
+## 🧱 Build More Dashboards in Grafana
 
-Once your metrics are coming in, go to **Dashboards > New** in Grafana to start visualizing:
+Use **Dashboards > New** to explore and visualize:
 
 - Request rates
-- Custom app metrics
 - Error counts
-- ...and more!
+- OpenTelemetry logs with filters
+- Combined metrics & logs views
+
+---
+
+## 📦 Extending the Stack
+
+- Add **Jaeger** for trace visualization
+- Use **Loki** as an alternative log backend
+- Deploy to the cloud using `infra/` Bicep templates
 
 ---
 
 ## 📬 Feedback & Contributions
 
-Feel free to open issues or pull requests if you improve the stack or have ideas!
+Feel free to open issues or pull requests with suggestions or improvements.
 
 ---
 
 ## 📄 License
 
 MIT
+```
+
+---
+
+Let me know if you'd like a version:
+
+- 📎 Converted to **HTML** or **PDF**
+- 📈 With **trace dashboards** included in Grafana
+- 🛠️ Tailored for a specific cloud environment (e.g., Azure, AWS)
+
