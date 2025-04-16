@@ -1,9 +1,11 @@
 apiVersion: 1
 
 providers:
-  - name: 'default'
+  - name: 'otel'
     orgId: 1
-    folder: ''
+    folder: 'otel'
     type: file
+    disableDeletion: false
+    editable: true
     options:
       path: /etc/grafana/provisioning/dashboards/json
