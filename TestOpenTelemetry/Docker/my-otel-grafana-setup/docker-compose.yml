@@ -1,16 +1,17 @@
 version: '3.8'
+
 services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
-      - "1888:1888"   # pprof for performance profiling
-      - "8890:8890"   # Prometheus metrics exported by the Collector
-      - "8889:8889"   # Prometheus exporter metrics (if needed)
-      - "13133:13133" # Health check endpoint
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
+      - "1888:1888"   # pprof
+      - "8890:8890"   # Prometheus metrics do Collector
+      - "8889:8889"   # Prometheus exporter (opcional)
+      - "13133:13133" # Health check
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
     networks:
       - otel-collector
 
@@ -19,7 +20,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"   # Prometheus web interface
+      - "9090:9090"
     networks:
       - otel-collector
 
@@ -30,7 +31,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     ports:
-      - "3000:3000"   # Grafana web interface
+      - "3000:3000"
     networks:
       - otel-collector
 
@@ -53,16 +54,16 @@ services:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    networks:
-      - otel-collector
     depends_on:
       - elasticsearch
+    networks:
+      - otel-collector
 
   jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "14250:14250"  # Jaeger gRPC (receiver from collector)
+      - "16686:16686"
+      - "14250:14250"
     networks:
       - otel-collector
 
@@ -76,6 +77,50 @@ services:
       - otel-collector
     networks:
       - otel-collector
+
+  # --- AQUI COMEÇA O STACK LARAVEL ---
+  laravel_app:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    volumes:
+      - ./laravel:/var/www/html
+      - ./laravel/logs/app:/var/log/app
+    depends_on:
+      - laravel_mysql
+    networks:
+      - otel-collector
+
+  laravel_nginx:
+    image: nginx:stable-alpine
+    container_name: laravel_nginx
+    ports:
+      - "8080:80"       # Laravel acessível em http://localhost:8080
+    volumes:
+      - ./laravel:/var/www/html
+      - ./laravel/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./laravel/logs/nginx:/var/log/nginx
+    depends_on:
+      - laravel_app
+    networks:
+      - otel-collector
+
+  laravel_mysql:
+    image: mysql:8.0
+    container_name: laravel_mysql
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+    volumes:
+      - laravel_dbdata:/var/lib/mysql
+    networks:
+      - otel-collector
+
+volumes:
+  laravel_dbdata:
 
 networks:
   otel-collector:
